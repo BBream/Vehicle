@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<RecipeDefs>
+
+	<RecipeDef Name="BaseRecipeSpawnVehicle" >
+		<defName>Make_SpawnVehicleAbstract</defName>
+    <label>Spawn vehicle abstract</label>
+		<workSpeedStat>SmithingSpeed</workSpeedStat>
+    <workSkill>Crafting</workSkill>
+    <workSkillLearnFactor>0.25</workSkillLearnFactor>
+		<effectWorking>Cook</effectWorking>
+    <soundWorking>Recipe_Machining</soundWorking>
+    <recipeUsers>
+      <li>TableVehicleShop</li>
+    </recipeUsers>
+    <defaultIngredientFilter>
+      <categories>
+        <li>Root</li>
+      </categories>
+      <exceptedThingDefs>
+        <li>Silver</li>
+        <li>Gold</li>
+      </exceptedThingDefs>
+    </defaultIngredientFilter>
+    <unfinishedThingDef>UnfinishedAbstract</unfinishedThingDef>
+  </RecipeDef>
+
+</RecipeDefs>

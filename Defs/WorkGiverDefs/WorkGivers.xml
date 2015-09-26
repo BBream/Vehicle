@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<WorkGivers>
+
+
+  <!-- ============= Crafting - misc ============= -->
+
+  <WorkGiverDef>
+    <defName>DoBillsVehicleShop</defName>
+    <giverClass>WorkGiver_DoBill</giverClass>
+    <workType>Crafting</workType>
+    <priorityInType>70</priorityInType>
+    <singleBillGiverDef>TableVehicleShop</singleBillGiverDef>
+    <verb>work</verb>
+    <gerund>working at</gerund>
+    <requiredCapacities>
+      <li>Manipulation</li>
+    </requiredCapacities>
+  </WorkGiverDef>
+
+</WorkGivers>

@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<BodyPartGroupDefs>
+
+  <BodyPartGroupDef>
+    <defName>Storage</defName>
+    <label>storage</label>
+    <listOrder>200</listOrder>
+  </BodyPartGroupDef>
+  
+  <BodyPartGroupDef>
+    <defName>LeftWheel</defName>
+    <label>left wheel</label>
+    <listOrder>199</listOrder>
+  </BodyPartGroupDef>
+  
+  <BodyPartGroupDef>
+    <defName>RightWheel</defName>
+    <label>right wheel</label>
+    <listOrder>198</listOrder>
+  </BodyPartGroupDef>
+  
+  <BodyPartGroupDef>
+    <defName>Handle</defName>
+    <label>handle</label>
+    <listOrder>197</listOrder>
+  </BodyPartGroupDef>
+
+</BodyPartGroupDefs>
