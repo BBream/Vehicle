@@ -166,7 +166,6 @@ namespace Vehicle
             base.ExposeData();
 
             Scribe_Deep.LookDeep<Vehicle_PathFollower>(ref pather, "pather");
-            Scribe_Deep.LookDeep<ThingContainer>(ref driverContainer, "driverContainer");
             Scribe_Deep.LookDeep<Vehicle_InventoryTracker>(ref inventory, "inventory");
             Scribe_Deep.LookDeep<ThingContainer>(ref driverContainer, "driverContainer");
             Scribe_Collections.LookList<Parts_TurretGun>(ref turretGuns, "turretGuns", LookMode.Deep);
@@ -452,22 +451,25 @@ namespace Vehicle
                 yield return fmoMount;
 
                 // order to board
-                FloatMenuOption fmoBoard = new FloatMenuOption();
+                if (vehicleDef.vehicle.boardableNum > 0)
+                {
+                    FloatMenuOption fmoBoard = new FloatMenuOption();
 
-                fmoBoard.label = "Board on " + this.LabelBase;
-                fmoBoard.priority = MenuOptionPriority.High;
-                fmoBoard.action = () =>
-                {
-                    Job jobNew = new Job(DefDatabase<JobDef>.GetNamed("Board"), this, MountPos);
-                    myPawn.drafter.TakeOrderedJob(jobNew);
-                };
-                if (vehicleDef.vehicle.boardableNum > 0 && this.inventory.container.Count(x => x is Pawn) >= vehicleDef.vehicle.boardableNum)
-                {
-                    fmoMount.label = "No space for boarding";
-                    fmoMount.Disabled = true;
+                    fmoBoard.label = "Board on " + this.LabelBase;
+                    fmoBoard.priority = MenuOptionPriority.High;
+                    fmoBoard.action = () =>
+                    {
+                        Job jobNew = new Job(DefDatabase<JobDef>.GetNamed("Board"), this, MountPos);
+                        myPawn.drafter.TakeOrderedJob(jobNew);
+                    };
+                    if (this.inventory.container.Count(x => x is Pawn) >= vehicleDef.vehicle.boardableNum)
+                    {
+                        fmoMount.label = "No space for boarding";
+                        fmoMount.Disabled = true;
+                    }
+
+                    yield return fmoBoard;
                 }
-
-                yield return fmoBoard;
             }
             else
             {

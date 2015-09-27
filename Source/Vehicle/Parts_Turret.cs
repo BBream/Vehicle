@@ -30,6 +30,16 @@ namespace Vehicle
             this.stunner = new StunHandler((Thing)parent);
         }
 
+        public virtual void SpawnSetup()
+        {
+            dummy = ThingMaker.MakeThing(DefDatabase<ThingDef>.GetNamed("Parts"), (ThingDef)null);
+            IntVec3 PosInt = parent.Position + parts_TurretGunDef.partsOffset.RotatedBy(parent.Rotation.AsAngle).ToIntVec3();
+            dummy.Position = parent.Position;
+            if (PosInt.InBounds())
+                dummy.Position = PosInt;
+            dummy.SetFactionDirect(parent.Faction);
+        }
+
         public virtual void Tick()
         {
             this.stunner.StunHandlerTick();

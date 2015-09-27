@@ -61,14 +61,9 @@ namespace Vehicle
             this.currentTargetInt = TargetInfo.Invalid;
         }
 
-        public virtual void SpawnSetup()
+        public override void SpawnSetup()
         {
-            dummy = ThingMaker.MakeThing(DefDatabase<ThingDef>.GetNamed("Parts"), (ThingDef)null);
-            IntVec3 PosInt = parent.Position + parts_TurretGunDef.partsOffset.RotatedBy(parent.Rotation.AsAngle).ToIntVec3();
-            dummy.Position = parent.Position;
-            if (PosInt.InBounds())
-                dummy.Position = PosInt;
-            dummy.SetFactionDirect(parent.Faction);
+            base.SpawnSetup();
             this.gun = ThingMaker.MakeThing(parts_TurretGunDef.turretGunDef, (ThingDef)null);
             this.GunCompEq.verbTracker.InitVerbs();
             for (int index = 0; index < this.GunCompEq.AllVerbs.Count; ++index)

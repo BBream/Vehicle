@@ -1,13 +1,12 @@
-﻿using UnityEngine;
-using System.Collections;
+﻿using System;
 using System.Collections.Generic;
-using System;
 using System.Linq;
+using System.Text;
 
+using UnityEngine;
 using Verse;
 using Verse.AI;
 using RimWorld;
-
 
 namespace Vehicle
 {
@@ -55,10 +54,6 @@ namespace Vehicle
             //Toils Start
             ///
 
-            //Reserve thing to be stored and storage cell 
-            //yield return Toils_Reserve.Reserve(MountableInd, ReservationType.Total);
-
-            //Mount on Target
             yield return Toils_Goto.GotoCell(MountCellInd, PathEndMode.ClosestTouch);
 
             Toil toilMountOn = new Toil();

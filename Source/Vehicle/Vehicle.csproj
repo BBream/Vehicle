@@ -61,13 +61,10 @@
     <Compile Include="Designator_ForcedTarget.cs" />
     <Compile Include="JobDriver_Board.cs" />
     <Compile Include="JobDriver_ClaimVehicle.cs" />
-    <Compile Include="JobDriver_Mount.cs">
-      <SubType>Code</SubType>
-    </Compile>
+    <Compile Include="JobDriver_Mount.cs" />
     <Compile Include="Parts_TurretGun.cs" />
     <Compile Include="Designator_Mount.cs" />
     <Compile Include="Designator_Move.cs" />
-    <Compile Include="ITab_Pawn_DriverHealth.cs" />
     <Compile Include="ITab_Pawn_VehicleGear.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -78,7 +75,6 @@
     <Compile Include="TurretTop.cs" />
     <Compile Include="Vehicle.cs" />
     <Compile Include="VehicleDef.cs" />
-    <Compile Include="WorkGiver_Drive.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
