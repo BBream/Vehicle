@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ThingDefs>
+
+  <ThingDef Name="BaseThingWithComponents" Abstract="True">
+    <thingClass>ThingWithComponents</thingClass>
+    <category>Item</category>
+    <selectable>true</selectable>
+    <tickerType>Normal</tickerType>
+    <altitudeLayer>Waist</altitudeLayer>
+		<useHitPoints>True</useHitPoints>
+    <hasTooltip>true</hasTooltip>
+    <soundImpactDefault>BulletImpactMetal</soundImpactDefault>
+  </ThingDef>
+  
+  
+  <!-- ============================ Vehicle ========================== -->
+
+  <ThingDef ParentName="BaseThingWithComponents" Name="BaseVehicle" Abstract="True" Class="Vehicle.VehicleDef">
+    <statBases>
+      <Flammability>0.5</Flammability>
+      <ComfyTemperatureMin>-100</ComfyTemperatureMin>
+      <ComfyTemperatureMax>250</ComfyTemperatureMax>
+      <MaxHitPoints>200</MaxHitPoints>
+    </statBases>
+    <passability>PassThroughOnly</passability>
+    <coversFloor>true</coversFloor>
+    <inspectorTabs>
+      <li>Vehicle.ITab_Pawn_VehicleGear</li>
+    </inspectorTabs>
+  </ThingDef>
+  
+  <ThingDef>
+    <defName>Parts</defName>
+    <category>Ethereal</category>
+    <label>Parts</label>
+    <thingClass>Building_TurretGun</thingClass>
+    <drawerType>None</drawerType>
+    <tickerType>Normal</tickerType>
+    <useHitPoints>false</useHitPoints>
+    <selectable>false</selectable>
+  </ThingDef>
+  
+  
+  <ThingDef ParentName="BaseVehicle" Class="Vehicle.VehicleDef">
+    <defName>APC</defName>
+    <label>APC</label>
+    <description>Armored Personnel Carrier</description>
+    <thingClass>Vehicle.Vehicle</thingClass>
+    <graphicData>
+      <texPath>Things/Pawn/Vehicle/APC</texPath>
+      <graphicClass>Graphic_Multi</graphicClass>
+      <drawSize>(3,3)</drawSize>
+    </graphicData>
+    <statBases>
+      <MoveSpeed>2.3</MoveSpeed>
+    </statBases>
+    <size>(2,3)</size>
+    <vehicle>
+      <mountPosOffset>(-1, 0, 1)</mountPosOffset>
+      <boardableNum>5</boardableNum>
+      <turretGunDefs>
+        <li>
+          <turretTopExtraGraphicDef>
+            <graphicPath>Things/Building/Security/TurretImprovised_Top</graphicPath>
+            <drawingOffset>(-0.25, 0.02, 0)</drawingOffset>
+            <InvisibleWhenSelected>true</InvisibleWhenSelected>
+          </turretTopExtraGraphicDef>
+          <partsOffset>(-0.25, 0.02, 0)</partsOffset>
+          <turretGunDef>Gun_TurretImprovised</turretGunDef>
+          <!-- <turretShellDef>ThingDef</turretShellDef> -->
+          <!-- <turretBurstWarmupTicks>10</turretBurstWarmupTicks> -->
+          <turretBurstCooldownTicks>400</turretBurstCooldownTicks>
+        </li>
+      </turretGunDefs>
+      <driverOffset>(-0.25, 0, 0.75)</driverOffset>
+      <driverVisible>IfSelected</driverVisible>
+      <crewsOffset>
+        <li>(0.25, 0, 0.75)</li>
+        <li>(-0.25, 0, -0.0)</li>
+        <li>(0.25, 0, -0.0)</li>
+        <li>(-0.25, 0, -0.75)</li>
+        <li>(0.25, 0, -0.75)</li>
+      </crewsOffset>
+      <crewsVisible>
+        <li>IfSelected</li>
+        <li>IfSelected</li>
+        <li>IfSelected</li>
+        <li>IfSelected</li>
+        <li>IfSelected</li>
+      </crewsVisible>
+      <extraGraphicDefs>
+        <li>
+          <graphicPath>Things/Pawn/Vehicle/APC_Roof</graphicPath>
+          <drawingOffset>(0, 0.01, 0)</drawingOffset>
+          <InvisibleWhenSelected>true</InvisibleWhenSelected>
+        </li>
+        <li>
+          <graphicPath>Things/Pawn/Vehicle/APC_wheel</graphicPath>
+          <drawingOffset>(-1.0, -0.01, 0)</drawingOffset>
+          <InvisibleWhenSelected>false</InvisibleWhenSelected>
+        </li>
+        <li>
+          <graphicPath>Things/Pawn/Vehicle/APC_wheel</graphicPath>
+          <drawingOffset>(1.0, -0.01, 0)</drawingOffset>
+          <InvisibleWhenSelected>false</InvisibleWhenSelected>
+        </li>
+      </extraGraphicDefs>
+    </vehicle>
+  </ThingDef>
+
+  <!-- SmallTruck -->
+  
+  <ThingDef ParentName="BaseVehicle" Class="Vehicle.VehicleDef">
+    <defName>SmallTruck</defName>
+    <label>SmallTruck</label>
+    <description>Small truck for haul or transfering people</description>
+    <thingClass>Vehicle.Vehicle</thingClass>
+    <graphicData>
+      <texPath>Things/Pawn/Vehicle/SmallTruck</texPath>
+      <graphicClass>Graphic_Multi</graphicClass>
+      <drawSize>(2,2)</drawSize>
+    </graphicData>
+    <statBases>
+      <MoveSpeed>6.0</MoveSpeed>
+    </statBases>
+    <size>(1,2)</size>
+    <vehicle>
+      <mountPosOffset>(-1, 0, 1)</mountPosOffset>
+      <boardableNum>0</boardableNum>
+      <driverOffset>(-0.25, 0, 0.75)</driverOffset>
+      <driverVisible>Never</driverVisible>
+      <extraGraphicDefs>
+      </extraGraphicDefs>
+    </vehicle>
+  </ThingDef>
+  
+</ThingDefs>

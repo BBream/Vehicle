@@ -58,7 +58,7 @@ namespace Vehicle
                     Widgets.DrawTextureFitted(thingIconRect, GraphicDatabase.Get<Graphic_Single>("Things/Pawn/Effects/Unhappy").MatSingle.mainTexture as Texture2D, 2.0f);
                 Widgets.FillableBar(thingFillableBar, driver.health.summaryHealth.SummaryHealthPercent, healthFilledBar, healthUnfilledBar, true);
                 Widgets.Label(thingLabelRect, driver.Label);
-                if (SelPawn.Faction == Faction.OfColony && Widgets.InvisibleButton(thingButtonRect))
+                if (SelThing.Faction == Faction.OfColony && Widgets.InvisibleButton(thingButtonRect))
                 {
                     List<FloatMenuOption> options = new List<FloatMenuOption>();
                     FloatMenuOption dismount = new FloatMenuOption("Dismount " + driver.LabelBase, () =>
@@ -95,7 +95,7 @@ namespace Vehicle
                     Widgets.DrawTextureFitted(thingIconRect, GraphicDatabase.Get<Graphic_Single>("Things/Pawn/Effects/Unhappy").MatSingle.mainTexture as Texture2D, 2.0f);
                 Widgets.FillableBar(thingFillableBar, crew.health.summaryHealth.SummaryHealthPercent, healthFilledBar, healthUnfilledBar, true);
                 Widgets.Label(thingLabelRect, crew.Label);
-                if (SelPawn.Faction == Faction.OfColony && Widgets.InvisibleButton(thingButtonRect))
+                if (SelThing.Faction == Faction.OfColony && Widgets.InvisibleButton(thingButtonRect))
                 {
                     List<FloatMenuOption> options = new List<FloatMenuOption>();
                     FloatMenuOption getOff = new FloatMenuOption("Get off " + crew.LabelBase, () =>
@@ -134,7 +134,7 @@ namespace Vehicle
                 else
                     Widgets.ThingIcon(thingIconRect, thing);
                 Widgets.Label(thingLabelRect, thing.Label);
-                if (SelPawn.Faction == Faction.OfColony && Widgets.InvisibleButton(thingButtonRect))
+                if (SelThing.Faction == Faction.OfColony && Widgets.InvisibleButton(thingButtonRect))
                 {
                     List<FloatMenuOption> options = new List<FloatMenuOption>();
                     FloatMenuOption dropit = new FloatMenuOption("Drop it", () =>

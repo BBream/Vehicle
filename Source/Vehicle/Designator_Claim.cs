@@ -15,7 +15,7 @@ namespace Vehicle
     {
         private const string txtCannotClaim = "CannotClaim";
 
-        public Pawn vehicle;
+        public Thing vehicle;
 
         public Designator_Claim()
             : base()

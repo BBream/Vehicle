@@ -15,7 +15,7 @@ namespace Vehicle
     {
         private const string txtCannotMount = "CannotMount";
 
-        public Pawn vehicle;
+        public Thing vehicle;
         public IntVec3 mountPos;
 
         public Designator_Mount(): base()

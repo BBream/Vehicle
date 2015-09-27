@@ -149,7 +149,7 @@ namespace Vehicle
             Thing searcher;
             Faction faction;
 
-            searcher = (Thing)parent;
+            searcher = (Thing)dummy;
             faction = parent.Faction;
             if (this.GunCompEq.PrimaryVerb.verbProps.projectileDef.projectile.flyOverhead && FactionUtility.HostileTo(faction, Faction.OfColony) && ((double) Rand.Value < 0.5 && Find.ListerBuildings.allBuildingsColonist.Count > 0))
                 return (TargetInfo) ((Thing) GenCollection.RandomElement<Building>((IEnumerable<Building>) Find.ListerBuildings.allBuildingsColonist));

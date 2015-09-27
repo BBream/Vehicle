@@ -10,7 +10,7 @@ using RimWorld;
 
 namespace Vehicle
 {
-    public class Vehicle : Pawn, IThingContainerOwner
+    public class Vehicle : ThingWithComps, IThingContainerOwner
     {
 
         #region Variables and short method
@@ -26,8 +26,11 @@ namespace Vehicle
         public int thresholdAutoDismount = 4800;
         public VehicleDef vehicleDef;
 
+        public Vehicle_PathFollower pather;
+
         //Data of mounting
         public ThingContainer driverContainer;
+        public Vehicle_InventoryTracker inventory;
 
         //Data of drawing
         public List<Graphic_Single> extraGraphics;
@@ -59,8 +62,7 @@ namespace Vehicle
                 return;
             }
 
-            this.pather.StopDead();
-            this.jobs.StopAll();
+            //this.pather.StopDead();
 
             driverContainer.TryAdd(pawn);
             pawn.holder = this.GetContainer();
@@ -72,7 +74,6 @@ namespace Vehicle
                 return;
 
             this.pather.StopDead();
-            this.jobs.StopAll();
 
             Thing dummy;
             if (driverContainer.Count > 0)
@@ -132,18 +133,19 @@ namespace Vehicle
             base.SpawnSetup();
 
             tickTime = 0;
-            this.training = null;
             callDriver = false;
             visibleInside = false;
+            pather = new Vehicle_PathFollower(this);
+
             driverContainer = new ThingContainer(this, true);
             driverContainer.owner = this;
-            inventory = new Pawn_InventoryTracker(this);
+            inventory = new Vehicle_InventoryTracker(this);
 
             //def.race.corpseDef = ThingDefOf.Steel;
             vehicleDef = def as VehicleDef;
 
             //Work setting
-            this.drafter = new Pawn_DraftController(this);
+            //this.drafter = new Pawn_DraftController(this);
             callDriver = false;
             isStandby = false;
 
@@ -162,6 +164,10 @@ namespace Vehicle
         public override void ExposeData()
         {
             base.ExposeData();
+
+            Scribe_Deep.LookDeep<Vehicle_PathFollower>(ref pather, "pather");
+            Scribe_Deep.LookDeep<ThingContainer>(ref driverContainer, "driverContainer");
+            Scribe_Deep.LookDeep<Vehicle_InventoryTracker>(ref inventory, "inventory");
             Scribe_Deep.LookDeep<ThingContainer>(ref driverContainer, "driverContainer");
             Scribe_Collections.LookList<Parts_TurretGun>(ref turretGuns, "turretGuns", LookMode.Deep);
             Scribe_Values.LookValue<bool>(ref callDriver, "callDriver");
@@ -175,6 +181,7 @@ namespace Vehicle
         {
             base.Destroy(mode);
             Dismount();
+            this.UnboardAll();
             foreach (Parts_TurretGun turretGun in turretGuns)
                 turretGun.Destroy(mode);
             //Thing dummy;
@@ -192,18 +199,18 @@ namespace Vehicle
         {
             base.Tick();
             tickTime++;
+            this.inventory.InventoryTrackerTick();
             if (IsMounted)
             {
                 //driver.Position = this.Position + driverOffset.ToIntVec3().RotatedBy(this.Rotation);
                 driverContainer.ThingContainerTick();
+                this.pather.PatherTick();
                 foreach (Parts_TurretGun turretGun in turretGuns)
                     turretGun.Tick();
 
-                if (Driver.Downed || Driver.Dead || this.Downed || this.Dead)
+                if (Driver.Downed || Driver.Dead)
                     this.Dismount();
             }
-            if (this.Downed || this.Dead)
-                this.UnboardAll();
 
             if (tickTime % tickPerTickRare == 0)
                 this.TickRare();
@@ -303,7 +310,7 @@ namespace Vehicle
             //    dinfo.Part.Value.Injury.Body.
         }
 
-        #region Thing Gizmo FloatingOptionMenu
+        #region Gizmo, FloatingOptionMenu
 
         public override IEnumerable<Gizmo> GetGizmos()
         {
@@ -322,35 +329,6 @@ namespace Vehicle
                 dismountGizmo.action = () => { this.Dismount(); };
 
                 yield return dismountGizmo;
-
-                Command_Toggle draftGizmo = new Command_Toggle();
-
-                draftGizmo.hotKey = KeyBindingDefOf.CommandColonistDraft;
-                draftGizmo.isActive = () => this.drafter.Drafted;
-                draftGizmo.toggleAction = () =>
-                {
-                    this.drafter.Drafted = !this.drafter.Drafted;
-                    ConceptDatabase.KnowledgeDemonstrated(ConceptDefOf.Drafting, KnowledgeAmount.SpecificInteraction);
-                };
-                draftGizmo.defaultDesc = Translator.Translate("CommandToggleDraftDesc");
-                draftGizmo.icon = ContentFinder<Texture2D>.Get("UI/Commands/Draft", true);
-                draftGizmo.turnOnSound = SoundDef.Named("DraftOn");
-                draftGizmo.turnOffSound = SoundDef.Named("DraftOff");
-                draftGizmo.defaultLabel = (!this.drafter.Drafted) ? Translator.Translate("CommandDraftLabel") : Translator.Translate("CommandUndraftLabel");
-                if (this.drafter.pawn.Downed)
-                {
-                    Command_Toggle commandToggle = draftGizmo;
-                    string key = "IsIncapped";
-                    object[] objArray = new object[1];
-                    int index = 0;
-                    string nameStringShort = this.drafter.pawn.NameStringShort;
-                    objArray[index] = (object)nameStringShort;
-                    string reason = Translator.Translate(key, objArray);
-                    commandToggle.Disable(reason);
-                }
-                draftGizmo.tutorHighlightTag = "ToggleDrafted";
-
-                yield return draftGizmo;
 
                 Designator_Move designator = new Designator_Move();
 
@@ -507,6 +485,483 @@ namespace Vehicle
             }
         }
         #endregion
+
+        public int TicksPerMove(bool diagonal)
+        {
+            float statValue = StatExtension.GetStatValue((Thing)this, StatDefOf.MoveSpeed, true);
+            float f = 1f / (statValue / 60f);
+            if (!Find.RoofGrid.Roofed(this.Position))
+                f /= Find.WeatherManager.CurMoveSpeedMultiplier;
+            if (diagonal)
+                f *= 1.41421f;
+            return Mathf.Clamp(Mathf.RoundToInt(f), 1, 450);
+        }
+    }
+
+    //This code source is DLL decompiler
+    public class Vehicle_InventoryTracker : IExposable, IThingContainerOwner
+    {
+        public ThingWithComps thing;
+        public ThingContainer container;
+
+        public Vehicle_InventoryTracker(ThingWithComps thing)
+        {
+            this.thing = thing;
+            this.container = new ThingContainer((IThingContainerOwner) this, false);
+        }
+
+        public void ExposeData()
+        {
+            Scribe_Deep.LookDeep<ThingContainer>(ref container, "container");
+        }
+
+        public void InventoryTrackerTick()
+        {
+            this.container.ThingContainerTick();
+        }
+
+        public void DropAllNearThing(IntVec3 pos, bool forbid = false)
+        {
+            while (this.container.Count > 0)
+            {
+                Thing lastResultingThing;
+                this.container.TryDrop(this.container[0], pos, ThingPlaceMode.Near, out lastResultingThing);
+                if (forbid && lastResultingThing != null)
+                    ForbidUtility.SetForbiddenIfOutsideHomeArea(lastResultingThing);
+            }
+        }
+
+        public ThingContainer GetContainer()
+        {
+            return this.container;
+        }
+
+        public IntVec3 GetPosition()
+        {
+            return this.thing.Position;
+        }
+    }
+
+    //This code source is DLL decompiler
+    public class Vehicle_PathFollower : IExposable
+    {
+        private const int MaxMoveTicks = 450;
+        private const int MaxCheckAheadNodes = 20;
+        private const float SnowReductionFromWalking = 0.005f;
+        private const int ClamorCellsInterval = 10;
+        private const int MinTicksWalk = 50;
+        private const int MinTicksAmble = 60;
+        protected ThingWithComps thing;
+        private bool moving;
+        public IntVec3 nextCell;
+        private IntVec3 lastCell;
+        public int ticksUntilMove;
+        public int totalMoveDuration;
+        private int cellsUntilClamor;
+        private TargetInfo destination;
+        private PathEndMode peMode;
+        public PawnPath curPath;
+        public IntVec3 lastPathedTargetPosition;
+
+        public TargetInfo Destination
+        {
+            get
+            {
+            return this.destination;
+            }
+        }
+
+        public bool Moving
+        {
+            get
+            {
+            return this.moving;
+            }
+        }
+
+        public Vehicle_PathFollower(ThingWithComps thing)
+        {
+            this.totalMoveDuration = 1;
+            this.thing = thing;
+        }
+
+        public void ExposeData()
+        {
+            Scribe_Values.LookValue<bool>(ref this.moving, "moving", true, false);
+            Scribe_Values.LookValue<IntVec3>(ref this.nextCell, "nextCell", new IntVec3(), false);
+            Scribe_Values.LookValue<int>(ref this.ticksUntilMove, "ticksUntilMove", 0, false);
+            Scribe_Values.LookValue<int>(ref this.totalMoveDuration, "totalMoveDuration", 0, false);
+            Scribe_Values.LookValue<PathEndMode>(ref this.peMode, "peMode", PathEndMode.None, false);
+            if (this.moving)
+            {
+                if (this.destination.Thing != null && this.destination.Thing.Destroyed)
+                {
+                    Log.Error("Saved while " + this.thing + " was moving towards destroyed thing " + this.destination.Thing + " with job ");
+                }
+                Scribe_TargetInfo.LookTargetInfo(ref this.destination, "destination");
+            }
+            if (Scribe.mode != LoadSaveMode.PostLoadInit || Game.Mode == GameMode.Entry)
+                return;
+            if (this.moving)
+                this.StartPath(this.destination, this.peMode);
+            //Find.PawnDestinationManager.ReserveDestinationFor(this.thing, this.destination.Cell);
+        }
+
+        public void Notify_Teleported_Int()
+        {
+            this.StopDead();
+            this.ResetToCurrentPosition();
+        }
+
+        public void ResetToCurrentPosition()
+        {
+            this.nextCell = this.thing.Position;
+        }
+
+        private bool PawnCanOccupy(IntVec3 c)
+        {
+            if (!GenGrid.Walkable(c))
+            return false;
+            Building edifice = GridsUtility.GetEdifice(c);
+            if (edifice != null)
+            {
+            Building_Door buildingDoor = edifice as Building_Door;
+            if (buildingDoor != null && !MachinesLike(buildingDoor.Faction, this.thing) && !buildingDoor.Open)
+                return false;
+            }
+            return true;
+        }
+
+        public void StartPath(TargetInfo dest, PathEndMode peMode)
+        {
+            GenPath.ResolvePathMode(ref dest, ref peMode);
+            if (!this.PawnCanOccupy(this.thing.Position) && !this.TryRecoverFromUnwalkablePosition(dest) || this.moving && this.curPath != null && (this.destination == dest && this.peMode == peMode))
+                return;
+            if (!Reachability.CanReach(this.thing.Position, dest, peMode, TraverseParms.For(TraverseMode.PassDoors, Danger.Deadly, false)))
+            {
+                Log.Warning(this.thing.ThingID + "(" + this.thing.LabelCap + ") at " + this.thing.Position + " tried to path to unreachable dest " + dest
+                     + ". This should have been checked before trying to path. (peMode=" + peMode + ")");
+                this.PatherArrived();
+            }
+            else
+            {
+            if (!GenGrid.Walkable(this.nextCell))
+                this.nextCell = this.thing.Position;
+            this.peMode = peMode;
+            this.destination = dest;
+            //if (!this.destination.HasThing && Find.PawnDestinationManager.DestinationReservedFor(this.thing) != this.destination.Cell)
+            //    Find.PawnDestinationManager.UnreserveAllFor(this.thing);
+            if (this.AtDestinationPosition())
+                this.PatherArrived();
+            else
+            {
+                if (this.curPath != null)
+                this.curPath.ReleaseToPool();
+                this.curPath = (PawnPath) null;
+                this.moving = true;
+            }
+            }
+        }
+
+        public void StopDead()
+        {
+            if (this.curPath != null)
+            this.curPath.ReleaseToPool();
+            this.curPath = (PawnPath) null;
+            this.moving = false;
+            this.nextCell = this.thing.Position;
+        }
+
+        public void PatherTick()
+        {
+            if (this.ticksUntilMove > 0)
+            {
+            --this.ticksUntilMove;
+            }
+            else
+            {
+            if (!this.moving)
+                return;
+            this.TryEnterNextPathCell();
+            }
+        }
+
+        public Thing BuildingBlockingNextPathCell()
+        {
+            Thing thing = (Thing) GridsUtility.GetEdifice(this.nextCell);
+            if (thing != null && ((((Building_Door)thing).Open)? false : !MachinesLike(thing.Faction, this.thing)))
+            return thing;
+            return (Thing) null;
+        }
+
+        public Building_Door NextCellDoorToManuallyOpen()
+        {
+            Building_Door buildingDoor = Find.ThingGrid.ThingAt<Building_Door>(this.nextCell);
+            if (buildingDoor != null && buildingDoor.SlowsPawns && (!buildingDoor.Open && MachinesLike(buildingDoor.Faction, this.thing)))
+                return buildingDoor;
+            return (Building_Door) null;
+        }
+
+        public void PatherDraw()
+        {
+            if (!DebugViewSettings.drawPaths || this.curPath == null || !Find.Selector.IsSelected((object)this.thing))
+                return;
+            if (!this.curPath.Found)
+                return;
+            float num = Altitudes.AltitudeFor(AltitudeLayer.Item);
+            if (this.curPath.NodesLeftCount <= 0)
+                return;
+            for (int nodesAhead = 0; nodesAhead < this.curPath.NodesLeftCount - 1; ++nodesAhead)
+            {
+                Vector3 A = this.curPath.Peek(nodesAhead).ToVector3Shifted();
+                A.y = num;
+                Vector3 B = this.curPath.Peek(nodesAhead + 1).ToVector3Shifted();
+                B.y = num;
+                GenDraw.DrawLineBetween(A, B);
+            }
+            if (this.thing == null)
+                return;
+            Vector3 drawPos = this.thing.DrawPos;
+            drawPos.y = num;
+            Vector3 B1 = this.curPath.Peek(0).ToVector3Shifted();
+            B1.y = num;
+            if ((double) (drawPos - B1).sqrMagnitude <= 0.00999999977648258)
+                return;
+            GenDraw.DrawLineBetween(drawPos, B1);
+        }
+
+        private bool TryRecoverFromUnwalkablePosition(TargetInfo originalDest)
+        {
+            bool flag = false;
+            for (int index1 = 0; index1 < GenRadial.RadialPattern.Length; ++index1)
+            {
+                IntVec3 c = this.thing.Position + GenRadial.RadialPattern[index1];
+                if (this.PawnCanOccupy(c))
+                {
+                    Log.Warning(this.thing + " on unwalkable cell " + this.thing.Position + ". Teleporting to " + c);
+                    this.thing.Position = c;
+                    this.moving = false;
+                    this.nextCell = this.thing.Position;
+                    this.StartPath(originalDest, this.peMode);
+                    flag = true;
+                    break;
+                }
+            }
+            if (!flag)
+            {
+                Log.Error(this.thing + " on unwalkable cell " + this.thing.Position + ". Could not find walkable position nearby. Destroyed.");
+            }
+            return flag;
+        }
+
+        private void PatherArrived()
+        {
+            this.StopDead();
+            //if (this.thing.jobs.curJob == null)
+            //    return;
+            //this.thing.jobs.curDriver.Notify_PatherArrived();
+        }
+
+        private void PatherFailed()
+        {
+            this.StopDead();
+            //this.thing.jobs.curDriver.Notify_PatherFailed();
+        }
+
+        private void TryEnterNextPathCell()
+        {
+            Thing b = this.BuildingBlockingNextPathCell();
+            if (b != null)
+            {
+                Building_Door buildingDoor = b as Building_Door;
+                if (buildingDoor == null || !buildingDoor.FreePassage)
+                {
+                    /*if (this.thing.CurJob != null && this.thing.CurJob.canBash || GenHostility.HostileTo((Thing)this.thing, b))
+                    {
+                        Job newJob = new Job(JobDefOf.AttackMelee, (TargetInfo) b);
+                        newJob.expiryInterval = 1100;
+                        this.thing.jobs.StartJob(newJob, JobCondition.Incompletable, (ThinkNode)null, false, true);
+                        return;
+                    }*/
+                    this.PatherFailed();
+                    return;
+                }
+            }
+            Building_Door buildingDoor1 = this.NextCellDoorToManuallyOpen();
+            if (buildingDoor1 != null)
+            {
+                Stance_Cooldown stanceCooldown = new Stance_Cooldown(buildingDoor1.TicksToOpenNow, (TargetInfo) ((Thing) buildingDoor1));
+                stanceCooldown.neverAimWeapon = true;
+                //this.thing.stances.SetStance((Stance)stanceCooldown);
+                buildingDoor1.StartManualOpenBy((Pawn)this.thing);
+            }
+            else
+            {
+                this.lastCell = this.thing.Position;
+                this.thing.Position = this.nextCell;
+                /*if (this.thing.RaceProps.Humanlike)
+                {
+                    --this.cellsUntilClamor;
+                    if (this.cellsUntilClamor <= 0)
+                    {
+                    GenClamor.DoClamor(this.thing.Position, 7f);
+                    this.cellsUntilClamor = 10;
+                    }
+                }
+                this.thing.filth.Notify_EnteredNewCell();
+                if ((double)this.thing.BodySize > 0.899999976158142)
+                    Find.SnowGrid.AddDepth(this.thing.Position, -0.005f);*/
+                Building_Door buildingDoor2 = Find.ThingGrid.ThingAt<Building_Door>(this.lastCell);
+                if (buildingDoor2 != null && !buildingDoor2.CloseBlocked && !GenHostility.HostileTo((Thing)this.thing, (Thing)buildingDoor2))
+                {
+                    buildingDoor2.FriendlyTouched();
+                    if (!buildingDoor2.HoldOpen && buildingDoor2.SlowsPawns)
+                    {
+                        buildingDoor2.StartManualCloseBy((Pawn)this.thing);
+                        return;
+                    }
+                }
+                if (this.NeedNewPath() && !this.TrySetNewPath())
+                    return;
+                if (this.AtDestinationPosition())
+                    this.PatherArrived();
+                else if (this.curPath.NodesLeftCount == 0)
+                {
+                    Log.Error((string)(object)this.thing + (object)" ran out of path nodes. Force-arriving.");
+                    this.PatherArrived();
+                }
+                else
+                    this.SetupMoveIntoNextCell();
+            }
+        }
+
+        private void SetupMoveIntoNextCell()
+        {
+            if (this.curPath.NodesLeftCount < 2)
+            {
+                Log.Error(this.thing + " at " + this.thing.Position + " ran out of path nodes while pathing to " + this.destination + ".");
+                this.PatherFailed();
+            }
+            else
+            {
+                this.nextCell = this.curPath.ConsumeNextNode();
+                if (!GenGrid.Walkable(this.nextCell))
+                {
+                    Log.Error(this.thing + " entering " + this.nextCell + " which is unwalkable.");
+                }
+                Building_Door buildingDoor = Find.ThingGrid.ThingAt<Building_Door>(this.nextCell);
+                if (buildingDoor != null)
+                    buildingDoor.Notify_PawnApproaching((Pawn)this.thing);
+                int num = this.TicksToMoveIntoCell(this.nextCell);
+                this.totalMoveDuration = num;
+                this.ticksUntilMove = num;
+            }
+        }
+
+        private int TicksToMoveIntoCell(IntVec3 c)
+        {
+            int num = (c.x == this.thing.Position.x || c.z == this.thing.Position.z ? ((Vehicle)this.thing).TicksPerMove(false) : ((Vehicle)this.thing).TicksPerMove(true)) + PathGrid.CalculatedCostAt(c, false);
+            Building edifice = GridsUtility.GetEdifice(c);
+            if (edifice != null)
+                num += (int)0;
+            if (num > 450)
+                num = 450;
+            /*if (this.thing.jobs.curJob != null)
+            {
+                switch (this.thing.jobs.curJob.locomotionUrgency)
+                {
+                    case LocomotionUrgency.Amble:
+                    num *= 3;
+                    if (num < 60)
+                    {
+                        num = 60;
+                        break;
+                    }
+                    break;
+                    case LocomotionUrgency.Walk:
+                    num *= 2;
+                    if (num < 50)
+                    {
+                        num = 50;
+                        break;
+                    }
+                    break;
+                    case LocomotionUrgency.Jog:
+                    num *= 1;
+                    break;
+                    case LocomotionUrgency.Sprint:
+                    num = Mathf.RoundToInt((float) num * 0.75f);
+                    break;
+                }
+            }*/
+            return num;
+        }
+
+        private bool TrySetNewPath()
+        {
+            PawnPath pawnPath = this.GenerateNewPath();
+            if (!pawnPath.Found)
+            {
+            this.PatherFailed();
+            return false;
+            }
+            if (this.curPath != null)
+            this.curPath.ReleaseToPool();
+            this.curPath = pawnPath;
+            return true;
+        }
+
+        private PawnPath GenerateNewPath()
+        {
+            this.lastPathedTargetPosition = this.destination.Cell;
+            return PathFinder.FindPath(this.thing.Position, this.destination, TraverseParms.For(TraverseMode.PassAnything, Danger.Deadly), this.peMode);
+        }
+
+        private bool AtDestinationPosition()
+        {
+            if (this.thing.Position == this.destination.Cell)
+            return true;
+            if (this.peMode == PathEndMode.Touch)
+            {
+            if (!this.destination.HasThing)
+            {
+                if (GenAdj.AdjacentTo8WayOrInside(this.thing.Position, this.destination.Cell))
+                return true;
+            }
+            else if (GenAdj.AdjacentTo8WayOrInside(this.thing.Position, this.destination.Thing))
+                return true;
+            }
+            return false;
+        }
+
+        private bool NeedNewPath()
+        {
+            if (this.curPath == null || !this.curPath.Found || this.curPath.NodesLeftCount == 0)
+            return true;
+            if (this.lastPathedTargetPosition != this.destination.Cell)
+            {
+                float horizontalSquared = (this.thing.Position - this.destination.Cell).LengthHorizontalSquared;
+                float num = (double) horizontalSquared <= 900.0 ? ((double) horizontalSquared <= 289.0 ? ((double) horizontalSquared <= 100.0 ? ((double) horizontalSquared <= 49.0 ? 0.5f : 2f) : 3f) : 5f) : 10f;
+                if ((double) (this.lastPathedTargetPosition - this.destination.Cell).LengthHorizontalSquared > (double) num * (double) num)
+                    return true;
+            }
+            for (int nodesAhead = 0; nodesAhead < 20 && nodesAhead < this.curPath.NodesLeftCount; ++nodesAhead)
+            {
+                IntVec3 c = this.curPath.Peek(nodesAhead);
+                if (!GenGrid.Walkable(c))
+                    return true;
+                Building_Door buildingDoor = GridsUtility.GetEdifice(c) as Building_Door;
+                if (buildingDoor != null && (!((!buildingDoor.FreePassage)? MachinesLike(buildingDoor.Faction, this.thing) : true) && !GenHostility.HostileTo((Thing)this.thing, (Thing)buildingDoor) || ForbidUtility.IsForbidden((Thing)buildingDoor, this.thing.Faction)))
+                    return true;
+            }
+            return false;
+        }
+
+        private bool MachinesLike(Faction machineFaction, Thing thing)
+        {
+            return thing.Faction != null && !FactionUtility.HostileTo(thing.Faction, machineFaction);
+        }
+
 
     }
 }

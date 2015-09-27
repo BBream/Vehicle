@@ -2,12 +2,6 @@
 <JobDefs>
 
   <!--============= Item hauling ===============-->
-
-  <JobDef>
-    <defName>DismountOnCell</defName>
-    <driverClass>Vehicle.JobDriver_DismountOnCell</driverClass>
-    <reportString>Dismount TargetA.</reportString>
-  </JobDef>
   
   <JobDef>
     <defName>Mount</defName>
@@ -26,17 +20,6 @@
     <driverClass>Vehicle.JobDriver_ClaimVehicle</driverClass>
     <reportString>Claiming TargetA.</reportString>
   </JobDef>
-  
-  <JobDef>
-    <defName>CallDriver</defName>
-    <driverClass>Vehicle.JobDriver_CallDriver</driverClass>
-    <reportString>Waiting TargetA.</reportString>
-  </JobDef>
-  
-  <JobDef>
-    <defName>NotMounted</defName>
-    <driverClass>Vehicle.JobDriver_NotMounted</driverClass>
-    <reportString>Unmounted.</reportString>
-  </JobDef>
+
   
 </JobDefs>

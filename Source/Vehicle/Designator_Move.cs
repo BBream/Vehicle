@@ -36,9 +36,10 @@ namespace Vehicle
 
         public override void DesignateSingleCell(IntVec3 c)
         {
-            vehicle.autoDismountTick = vehicle.thresholdAutoDismount;
-            Job jobNew = new Job(JobDefOf.Goto, c);
-            vehicle.drafter.TakeOrderedJob(jobNew);
+            //vehicle.autoDismountTick = vehicle.thresholdAutoDismount;
+            //Job jobNew = new Job(JobDefOf.Goto, c);
+            //vehicle.drafter.TakeOrderedJob(jobNew);
+            vehicle.pather.StartPath(c, PathEndMode.OnCell);
 
             DesignatorManager.Deselect();
         }

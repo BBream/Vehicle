@@ -20,7 +20,6 @@ namespace Vehicle
     {
         //Data of mounting
         public IntVec3           mountPosOffset;
-        public BodyPartDef       mountedPart;
         public int               boardableNum;
 
         //Data of Parts
@@ -34,8 +33,6 @@ namespace Vehicle
         public List<PawnVisible> crewsVisible;
         public List<ExtraGraphicDef> extraGraphicDefs;
 
-        //vehicle work setting
-        public List<JobGiverDef> jobGiverDefs;
     }
 
     public enum PawnVisible
@@ -60,23 +57,5 @@ namespace Vehicle
         public string         graphicPath;
         public Vector3        drawingOffset;
         public bool           InvisibleWhenSelected;
-    }
-
-    public class JobGiverDef
-    {
-        public Type giverClass;
-        public int priorityInOrder;
-
-        private ThinkNode_JobGiver jobGiverInt;
-
-        public ThinkNode_JobGiver JobGiver
-        {
-            get
-            {
-                if (jobGiverInt == null && this.giverClass != null)
-                    jobGiverInt = (ThinkNode_JobGiver)Activator.CreateInstance(this.giverClass);
-                return jobGiverInt;
-            }
-        }
     }
 }
